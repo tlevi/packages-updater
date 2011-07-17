@@ -1,0 +1,16 @@
+This is my system update script for gentoo
+
+It does / can do:
+
+ - emerge sync
+ - eix update
+ - layman update (sync overlay repos)
+ - fetch all packages (emerge -f)
+ - emerge updated or changed packages
+ - emerge version 9999 packages ('live ebuilds')
+ - cfg-update (etc-update with better automatic merging)
+ - skip packages based on regex list
+ - provide a list of skipped or uncompleted updates
+ - basic logging
+
+Some of these need extra packages or options enabled
