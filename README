@@ -1,4 +1,4 @@
-This is my system update script for gentoo
+This is my system update script for Gentoo Linux.
 
 It does / can do:
 
@@ -14,3 +14,6 @@ It does / can do:
  - basic logging
 
 Some of these need extra packages or options enabled
+
+The idea is you can run this from cron e.g daily and keep most of your system up-to-date.
+By adding to packages.noupdate, things that might break your system can be skipped.
