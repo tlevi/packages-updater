@@ -1,46 +1,6 @@
 #!/usr/bin/perl
-use strict;
 
-
-## CONFIG ##
-
-# run emerge --sync first
-my $doSync = 1;
-
-# update overlays using layman -S
-# requires app-portage/layman
-my $doLayman = 0;
-
-# run eix update after sync
-my $doEix = 0;
-
-# re-merge 9999 version packages so they are updated too
-# requires qlist from app-portage/portage-utils
-my $do9999s = 0;
-
-# fetch all, even if we won't install later
-my $doFetch = 0;
-
-# Do pretend merges for each package during install
-my $doPretend = 0;
-
-# Use cfg-update to do automatic config updates
-# requires app-portage/cfg-update
-my $cfgUpdate = 0;
-
-# extra arguments to pass to portage, probably don't need to change this
-# it is highly recommended to keep --newuse
-my $portage_extra_args = "--newuse";
-
-#Where is the log file kept?
-my $dolog = 0;
-my $logfile = "/var/log/update-log";
-
-# Where is the package blacklist kept?
-# Packages on the blacklist will be fetched for you
-my $blacklistfile = "./packages.noupdate";
-
-## END CONFIG ##
+require "packages-updater-config.pl";
 
 
 ## BEGIN SCRIPT ##
@@ -49,16 +9,20 @@ my $blacklistfile = "./packages.noupdate";
 my $isroot = 0;
 if (`whoami` =~ m/root/){ $isroot = 1; }
 
-#If not root, we must be in portage group, or this is pointless
-if (!$isroot and !(`groups` =~ m/portage/)){
-	print "Sorry, you are not root or in the portage group.\n";
-	exit 0; # return failure
+if (!$isroot){
+	print "Sorry, you are not root!\n";
+	exit 1; # return failure
 }
 
 
+# Prepend script dir to paths
+# HACK - assumes script called 'packages-updater'
 my $dir = $0;
 $dir =~ s/packages-updater$//;
-$blacklistfile = $dir.$blacklistfile;
+my $blacklistfile = $dir.$blacklistfile;
+my $logfile = $dir.$logfile;
+my $portageargs = "--newuse --nospinner";
+my $nocolor = "--color=n";
 
 
 # Put date in the log
@@ -72,57 +36,51 @@ my @blacklist = split("\n", `cat $blacklistfile`);
 
 
 # Update the portage tree
-if ($doSync and $isroot and !$doPretend){
+if ($doSync){
 	print "Syncing portage tree...";
 	`emerge --sync &> /dev/null`;
-	if ($dolog){
-		`echo 'Synced portage tree' >> $logfile`;
-	}
 	print "Done.\n";
 }
 
 
 # update the layman managed overlays
-if ($doLayman and $isroot and !$doPretend){
+if ($doLayman){
 	print "Syncing overlays...";
 	`layman -S &> /dev/null`;
-	if ($dolog){
-		`echo 'Synced overlays' >> $logfile`;
-	}
 	print "Done\n";
 }
 
 
+# update the metadata if sync wasn't performed
+if ($doMetadata && !$doSync){
+	print "Updating portage metadata...";
+	`emerge --metadata &> /dev/null`;
+	print "Done.\n";
+}
+
+
 # update the eix database
-if (($doSync or $doLayman) and $doEix and !$doPretend){
+if ($doEix){
 	print "Updating eix cache...";
 	`eix-update &> /dev/null`;
-	if ($dolog){
-		`echo 'Updated eix cache' >> $logfile`;
-	}
 	print "Done.\n";
 }
-
-
-# Fetch all new packages in world, even if they are blacklisted from install
-# don't check isroot, because users in portage group can do fetching
-if ($doFetch and !$doPretend){
-	print "Fetching packages...";
-	`emerge -qfuD --nospinner --with-bdeps=y --color=n $portage_extra_args world &> /dev/null`;
-	if ($dolog){
-		`echo 'Fetched all packages' >> $logfile`;
-	}
-	print "Done.\n";
-}
-
 
 
 print "Getting list of updated packages...";
-
 # do a pretend merge to get list of packages
-my $packagepretend = `emerge -qpuD --nospinner --with-bdeps=y --color=n $portage_extra_args world`;
+my $packagepretend = `emerge -qpuD --accept-properties=-interactive $portageargs $nocolor world`;
 my @packagedata = split("\n", $packagepretend);
 my @packagelist;
+
+
+# grab list of v9999 packages
+if ($do9999s){
+	my $v9999s = join(" ", split("\n", `qlist -ICq 9999`));
+	my @atoms = split("\n", `emerge -pq --nospinner --accept-properties=-interactive $nocolor $v9999s`);
+	push @packagedata, @atoms;
+}
+
 
 # grab package names from emerge output
 for (my $i=0; $i <= $#packagedata; $i++){
@@ -131,16 +89,6 @@ for (my $i=0; $i <= $#packagedata; $i++){
 	}
 }
 
-# grab list of v9999 packages & deps
-if ($do9999s){
-	my $v9999s = join(" ", split("\n", `qlist -ICq 9999`));
-	my @atoms = split("\n", `emerge -qp1 --with-bdeps=y --nospinner --color=n $v9999s`);
-	foreach (@atoms){
-		if ($_ =~ m/^\[ebuild .*?\] (.*?)((\s\[)|$)/i){
-			push @packagelist, $1;
-		}
-	}
-}
 
 # keep only unique items on the list
 my %seenitems = ();
@@ -148,6 +96,7 @@ foreach (@packagelist){
 	$seenitems{$_} = 1;
 }
 @packagelist = keys %seenitems;
+
 
 # clip off blacklisted items
 my @updatelist;
@@ -167,49 +116,49 @@ for(my $i=0; $i <= $#packagelist; $i++){
 print "Done.\n\n";
 
 
-# if there are blacklisted packages with updates, show them
-if ($#blackpackages >= 0){
-	print "Blacklisted packages have updates:\n";
-	my $blackatoms = "=".join(" =", @blackpackages);
-	system "emerge -pq1 --nodeps --nospinner --nodeps $blackatoms";
-	print "\n";
-}
-
-
-if ($#updatelist < 0){
-	print "No updates to do, exiting.\n";
-	exit;
-}
-
-
 # show a list of packages to be updated
 my $atoms = "=".join(" =", @updatelist);
 print "Packages that will be updated:\n";
-system "emerge -pq1 --nodeps --nospinner $atoms";
+system "emerge -pq1 --nodeps --nospinner --accept-properties=-interactive $atoms";
+
+
+# perform updates
+print "\nUpdating packages...\n";
 if ($dolog){
 	foreach (@updatelist){
 		`echo $_ >> $logfile`;
 	}
 }
+system "emerge -q1 --nodeps --nospinner --keep-going --jobs=$jobs $atoms";
+print "Done updating packages.\n";
 
 
-# perform updates
-if ($isroot and !$doPretend){
-	print "\nUpdating packages...\n";
-	system "emerge -q1 --nodeps --nospinner --keep-going $atoms";
-	print "\nDone updating packages.\n";
-}
+print "\nFetching remaining packages...";
+`emerge -qfuD $portageargs $nocolor world &> /dev/null`;
+print "Done.\n";
 
 
-# update config files if enabled and not user
-if ($isroot and $cfgUpdate and !$doPretend){
+# update config files if enabled
+if ($cfgUpdate){
 	print "Updating config...";
-	system "cfg-update -ua > /dev/null";
-	if ($dolog){
-		`echo 'Auto-updated config' >> $logfile`;
-	}
-	print "Done.\n";
+	system "cfg-update -ua &> /dev/null";
+	print "Done.\n\n";
+	system "cfg-update -l";
 }
+
+
+# if there are blacklisted packages with updates, show them
+if ($#blackpackages >= 0){
+	print "\n";
+	print "Blacklisted packages have updates:\n";
+	my $blackatoms = "=".join(" =", @blackpackages);
+	system "emerge -pq1 --nodeps --nospinner $blackatoms";
+	print "\n";
+}
+
+print "\nRemaining package updates:\n";
+system "emerge -pquD --nodeps $portageargs world";
+print "\n";
 
 
 if ($dolog){
