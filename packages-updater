@@ -19,8 +19,8 @@ if (!$isroot){
 # HACK - assumes script called 'packages-updater'
 my $dir = $0;
 $dir =~ s/packages-updater$//;
-my $blacklistfile = $dir.$blacklistfile;
-my $logfile = $dir.$logfile;
+my $blacklistfile = $blacklistfile;
+my $logfile = $logfile;
 my $portageargs = "--newuse --nospinner";
 my $nocolor = "--color=n";
 
@@ -32,7 +32,10 @@ if ($dolog){
 
 
 # Read list of packages to not update
-my @blacklist = split("\n", `cat $blacklistfile`);
+open(BLACKLIST, $blacklistfile) or die $!;
+my @blacklist = <BLACKLIST>;
+@blacklist = chomp(@blacklist);
+close BLACKLIST;
 
 
 # Update the portage tree
@@ -152,12 +155,12 @@ if ($#blackpackages >= 0){
 	print "\n";
 	print "Blacklisted packages have updates:\n";
 	my $blackatoms = "=".join(" =", @blackpackages);
-	system "emerge -pq1 --nodeps --nospinner $blackatoms";
+	system "emerge -pq --nodeps --nospinner $blackatoms";
 	print "\n";
 }
 
 print "\nRemaining package updates:\n";
-system "emerge -pquD --nodeps $portageargs world";
+system "emerge -pquD $portageargs world";
 print "\n";
 
 
