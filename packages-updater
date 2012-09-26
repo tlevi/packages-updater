@@ -123,6 +123,14 @@ for(my $i=0; $i <= $#packagelist; $i++){
 }
 print "Done.\n\n";
 
+if ($#updatelist) {
+	print "No packages to be updated!\n\n";
+	if ($dolog){
+		`echo \`date\` >> $logfile`;
+		`echo >> $logfile`;
+	}
+	exit;
+}
 
 # show a list of packages to be updated
 my $atoms = "=".join(" =", @updatelist);
@@ -136,7 +144,7 @@ if ($dolog){
 		`echo $_ >> $logfile`;
 	}
 }
-system "emerge -q1 --nodeps --nospinner --keep-going --jobs=$jobs $atoms";
+system "emerge -q1 --nodeps --nospinner --accept-properties=-interactive --keep-going --jobs=$jobs $atoms";
 print "Done updating packages.\n";
 
 
