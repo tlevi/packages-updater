@@ -38,7 +38,7 @@ our $logfile = "./update-log";
 
 # Where is the package blacklist kept?
 # Packages on the blacklist will be fetched for you
-our $blacklistfile = "./packages.noupdate";
+our $blacklistfile = "packages.noupdate";
 
 ## END CONFIG ##
 

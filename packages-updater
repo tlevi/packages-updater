@@ -1,6 +1,11 @@
 #!/usr/bin/perl
 
-require "packages-updater-config.pl";
+use File::Spec::Functions qw(rel2abs);
+use File::Basename;
+
+$DIR = dirname(rel2abs($0));
+
+require "$DIR/packages-updater-config.pl";
 
 
 ## BEGIN SCRIPT ##
@@ -19,7 +24,7 @@ if (!$isroot){
 # HACK - assumes script called 'packages-updater'
 my $dir = $0;
 $dir =~ s/packages-updater$//;
-my $blacklistfile = $blacklistfile;
+my $blacklistfile = "$DIR/$blacklistfile";
 my $logfile = $logfile;
 my $portageargs = "--newuse --nospinner";
 my $nocolor = "--color=n";
@@ -32,10 +37,10 @@ if ($dolog){
 
 
 # Read list of packages to not update
-open(BLACKLIST, $blacklistfile) or die $!;
+open BLACKLIST, $blacklistfile or die $!;
 my @blacklist = <BLACKLIST>;
-@blacklist = chomp(@blacklist);
 close BLACKLIST;
+chomp @blacklist;
 
 
 # Update the portage tree
@@ -123,7 +128,6 @@ print "Done.\n\n";
 my $atoms = "=".join(" =", @updatelist);
 print "Packages that will be updated:\n";
 system "emerge -pq1 --nodeps --nospinner --accept-properties=-interactive $atoms";
-
 
 # perform updates
 print "\nUpdating packages...\n";
