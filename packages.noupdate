@@ -3,4 +3,3 @@ sys-apps/baselayout
 sys-devel/gcc
 sys-boot/grub
 sys-apps/openrc
-net-proxy/squid
