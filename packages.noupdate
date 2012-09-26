@@ -4,4 +4,3 @@ sys-devel/gcc
 sys-boot/grub
 sys-apps/openrc
 net-proxy/squid
-net-p2p/transmission
