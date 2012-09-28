@@ -123,7 +123,7 @@ for(my $i=0; $i <= $#packagelist; $i++){
 }
 print "Done.\n\n";
 
-if ($#updatelist) {
+if ($#updatelist < 1) {
 	print "No packages to be updated!\n\n";
 	if ($dolog){
 		`echo \`date\` >> $logfile`;
