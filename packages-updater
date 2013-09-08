@@ -70,6 +70,7 @@ if ($doSync){
 if ($doLayman){
 	print "Syncing overlays...";
 	`layman -S &> /dev/null`;
+	`cd /usr/local/portage && git pull --ff-only &> /dev/null`;
 	print "Done\n";
 }
 
@@ -159,7 +160,7 @@ if ($dolog){
 		`echo $_ >> $logfile`;
 	}
 }
-system "emerge -q1 --nodeps --nospinner --accept-properties=-interactive --keep-going --jobs=$jobs $atoms";
+system "emerge -q1 --nodeps --nospinner --accept-properties=-interactive --keep-going $atoms";
 print "Done updating packages.\n";
 
 

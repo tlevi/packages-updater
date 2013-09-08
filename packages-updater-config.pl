@@ -24,9 +24,6 @@ our $doEix = 0;
 # requires qlist from app-portage/portage-utils
 our $do9999s = 0;
 
-# number of parallel merges to run, see emerge --jobs option
-our $jobs = 4;
-
 # Use cfg-update to do automatic config updates
 # requires app-portage/cfg-update
 our $cfgUpdate = 0;
