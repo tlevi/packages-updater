@@ -108,7 +108,7 @@ if ($do9999s){
 
 # grab package names from emerge output
 for (my $i=0; $i <= $#packagedata; $i++){
-	if ($packagedata[$i] =~ m/^\[ebuild .*?\] (.*?)((\s\[)|$)/i){
+	if ($packagedata[$i] =~ m/^\[(?:ebuild|binary)  [\w\s]+\] (.*?)((\s\[)|$)/i){
 		push @packagelist, $1;
 	}
 }
