@@ -4,3 +4,4 @@ sys-devel/gcc
 sys-boot/grub
 sys-apps/openrc
 media-sound/teamspeak-server-bin
+dev-php/hhvm
